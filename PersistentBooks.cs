@@ -82,7 +82,6 @@ namespace PersistentBooksMod
                 inv.AddGear(clone, false);
             }
 
-            // 🔑 KRITIKUS FIX: ne azonnal destroy
             MelonCoroutines.Start(DestroyNextFrame(gi));
 
             return false;
@@ -96,6 +95,29 @@ namespace PersistentBooksMod
             {
                 UnityEngine.Object.Destroy(gi.gameObject);
             }
+        }
+    }
+    [HarmonyPatch(typeof(PlayerManager), "ProcessPickupItemInteraction")]
+    [HarmonyPriority(Priority.First)]
+    internal static class PlayerManager_ProcessPickupItemInteraction_NullGuard
+    {
+        static bool Prefix(
+            PlayerManager __instance,
+            GearItem item,
+            bool forceEquip,
+            bool forceEquipImmediate,
+            bool skipAudio
+        )
+        {
+            if (item == null)
+            {
+                MelonLogger.Msg(
+                    "[PersistentBooksMod] Prevented ProcessPickupItemInteraction(null)"
+                );
+                return false;
+            }
+
+            return true;
         }
     }
 }
