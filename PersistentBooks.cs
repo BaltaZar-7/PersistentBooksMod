@@ -63,12 +63,7 @@ namespace PersistentBooksMod
 )]
     internal static class PlayerManager_TryAddToExistingStackable_BlockBooks
     {
-        static bool Prefix(
-            ref GearItem gearToAdd,
-            float normalizedCondition,
-            int numUnits,
-            ref GearItem existingGearItem
-        )
+        static bool Prefix(ref GearItem gearToAdd, ref GearItem existingGearItem)
         {
             if (gearToAdd == null)
                 return true;
@@ -78,6 +73,7 @@ namespace PersistentBooksMod
 
             MelonLogger.Msg($"[PersistentBooksMod] Prevent stacking book: {gearToAdd.name}");
 
+            // 🔑 ne legyen stack target → játék stack logikája skip
             existingGearItem = null;
 
             return false;
