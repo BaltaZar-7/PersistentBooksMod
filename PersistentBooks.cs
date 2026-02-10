@@ -45,79 +45,42 @@ namespace PersistentBooksMod
         }
     }
 
-    [HarmonyPatch(typeof(PlayerManager), "AddItemToPlayerInventory")]
-    internal static class PlayerManager_AddItemToPlayerInventory_BookNoStack
+    [HarmonyPatch(typeof(PlayerManager))]
+    [HarmonyPatch(nameof(PlayerManager.TryAddToExistingStackable))]
+    [HarmonyPatch(
+    new System.Type[] {
+        typeof(GearItem),
+        typeof(float),
+        typeof(int),
+        typeof(GearItem)
+    },
+    new ArgumentType[] {
+        ArgumentType.Normal,
+        ArgumentType.Normal,
+        ArgumentType.Normal,
+        ArgumentType.Ref
+    }
+)]
+    internal static class PlayerManager_TryAddToExistingStackable_BlockBooks
     {
         static bool Prefix(
-            PlayerManager __instance,
-            GearItem gi,
-            bool trackItemLooted,
-            bool enableNotificationFlag
+            ref GearItem gearToAdd,
+            float normalizedCondition,
+            int numUnits,
+            ref GearItem existingGearItem
         )
         {
-            if (gi == null) return true;
-            if (!Main.BookUtils.IsPersistentBook(gi)) return true;
+            if (gearToAdd == null)
+                return true;
 
-            MelonLogger.Msg($"[PersistentBooksMod] Intercept pickup: {gi.name}");
+            if (!Main.BookUtils.IsPersistentBook(gearToAdd))
+                return true;
 
-            Inventory inv = GameManager.GetInventoryComponent();
+            MelonLogger.Msg($"[PersistentBooksMod] Prevent stacking book: {gearToAdd.name}");
 
-            int units = 1;
-            StackableItem si = gi.GetComponent<StackableItem>();
-            if (si != null && si.m_Units > 0)
-                units = si.m_Units;
-
-            for (int i = 0; i < units; i++)
-            {
-                GearItem clone = UnityEngine.Object.Instantiate(gi);
-                clone.name = gi.name;
-
-                StackableItem cloneSI = clone.GetComponent<StackableItem>();
-                if (cloneSI != null)
-                {
-                    cloneSI.m_Units = 1;
-                    cloneSI.m_DefaultUnitsInItem = 1;
-                }
-
-                inv.AddGear(clone, false);
-            }
-
-            MelonCoroutines.Start(DestroyNextFrame(gi));
+            existingGearItem = null;
 
             return false;
-        }
-
-        private static System.Collections.IEnumerator DestroyNextFrame(GearItem gi)
-        {
-            yield return null;
-
-            if (gi != null && gi.gameObject != null)
-            {
-                UnityEngine.Object.Destroy(gi.gameObject);
-            }
-        }
-    }
-    [HarmonyPatch(typeof(PlayerManager), "ProcessPickupItemInteraction")]
-    [HarmonyPriority(Priority.First)]
-    internal static class PlayerManager_ProcessPickupItemInteraction_NullGuard
-    {
-        static bool Prefix(
-            PlayerManager __instance,
-            GearItem item,
-            bool forceEquip,
-            bool forceEquipImmediate,
-            bool skipAudio
-        )
-        {
-            if (item == null)
-            {
-                MelonLogger.Msg(
-                    "[PersistentBooksMod] Prevented ProcessPickupItemInteraction(null)"
-                );
-                return false;
-            }
-
-            return true;
         }
     }
 }
